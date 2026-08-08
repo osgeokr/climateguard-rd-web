@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClimateGuard · Panel</title>
+<meta name="description" content="ClimateGuard — panel de datos de biodiversidad (República Dominicana)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23003876'/%3E%3Cpath d='M32 16 C40 26 40 40 32 50 C24 40 24 26 32 16 Z' fill='%231B7F5A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{
+  --navy:#003876; --navy2:#00285A; --red:#CE1126; --green:#1B7F5A; --gold:#C77700;
+  --ink:#1A1A1A; --mut:#5C6670; --line:#E4E7EA; --bg:#F4F6F9; --card:#fff;
+  --tit:'IBM Plex Mono',ui-monospace,monospace; --cpo:'Open Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--cpo);color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.5}
+button{font-family:var(--cpo);cursor:pointer}
+a{color:var(--navy)}
+.hidden{display:none !important}
+
+/* ── Login ── */
+#login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(160deg,#003876 0%,#00285A 60%,#001B3D 100%)}
+.login-card{background:#fff;border-radius:18px;max-width:390px;width:100%;padding:34px 30px;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+.brand{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:6px}
+.brand svg{width:40px;height:40px}
+.brand h1{font-family:var(--tit);font-size:23px;margin:0;color:var(--navy);letter-spacing:-.5px}
+.login-card .sub{color:var(--mut);font-size:14px;margin:0 0 6px}
+.login-card .flag{display:inline-flex;gap:4px;margin:10px 0 20px;font-size:12px;color:var(--mut);align-items:center}
+.login-card .flag i{width:22px;height:14px;border-radius:2px;display:inline-block;
+  background:linear-gradient(90deg,#002D62 0 33%,#fff 33% 66%,#CE1126 66% 100%)}
+#gbtn{display:flex;justify-content:center;min-height:44px;margin-top:6px}
+.login-note{margin-top:18px;font-size:12px;color:#9AA2AB;line-height:1.5}
+.lang-min{margin-top:16px;font-size:12.5px}
+.lang-min button{background:none;border:0;color:var(--navy);font-weight:600;padding:2px 6px}
+.lang-min button[aria-pressed=false]{color:#A7AEB6;font-weight:400}
+
+/* ── App shell ── */
+#app{min-height:100dvh;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;
+  display:flex;align-items:center;gap:12px;padding:11px 18px;padding-top:calc(11px + env(safe-area-inset-top))}
+.top .logo{display:flex;align-items:center;gap:9px;min-width:0}
+.top .logo svg{width:26px;height:26px;flex:none}
+.top .logo b{font-family:var(--tit);font-size:16px;letter-spacing:-.4px;white-space:nowrap}
+.top .logo small{color:#AEC4E0;font-size:11px;display:block;margin-top:-2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top .sp{flex:1}
+.lang{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.12);border-radius:999px;padding:2px}
+.lang button{background:none;border:0;color:#fff;font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px}
+.lang button[aria-pressed=false]{color:#AEC4E0;font-weight:400}
+.lang button[aria-pressed=true]{background:#fff;color:var(--navy)}
+.me{display:flex;align-items:center;gap:8px}
+.me img{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#AEC4E0;border:1.5px solid rgba(255,255,255,.5)}
+.me .nm{font-size:13px;font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me .out{background:rgba(255,255,255,.14);border:0;color:#fff;font-size:12px;font-weight:600;border-radius:999px;padding:6px 11px}
+.me .out:hover{background:rgba(255,255,255,.26)}
+
+.tabs{display:flex;gap:2px;background:var(--navy2);padding:0 12px;position:sticky;top:53px;z-index:19}
+.tabs button{background:none;border:0;color:#AEC4E0;font-size:13.5px;font-weight:600;padding:11px 16px;border-bottom:3px solid transparent}
+.tabs button[aria-selected=true]{color:#fff;border-bottom-color:var(--red)}
+
+main{flex:1;max-width:1080px;width:100%;margin:0 auto;padding:18px 16px 60px}
+.section-h{font-family:var(--tit);font-size:12.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--navy);margin:22px 4px 10px}
+.section-h:first-child{margin-top:4px}
+
+/* cards / stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:620px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat b{display:block;font-family:var(--tit);font-size:26px;color:var(--navy);line-height:1.1}
+.stat span{font-size:12px;color:var(--mut)}
+.stat.g b{color:var(--green)} .stat.r b{color:var(--red)}
+
+#map{height:300px;border-radius:14px;border:1px solid var(--line);margin-top:4px;background:#dfe6ee}
+.leaflet-container{font-family:var(--cpo)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.obs{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.obs .ph{height:150px;background:#EAEEF2 center/cover no-repeat;position:relative;display:flex;align-items:center;justify-content:center;color:#AAB2BB;font-size:12px}
+.obs .ph .sk{position:absolute;inset:0;background:linear-gradient(100deg,#EAEEF2 30%,#F3F6F9 50%,#EAEEF2 70%);background-size:200% 100%;animation:sk 1.2s linear infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.obs .bd{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1}
+.obs .esp{font-weight:700;font-size:14px;font-style:italic}
+.obs .esp.none{font-style:normal;color:var(--mut);font-weight:600}
+.obs .meta{font-size:12px;color:var(--mut);display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:#EAF0F7;color:var(--navy)}
+.chip.iucn{background:#FCEAEC;color:var(--red)}
+.obs .foot{margin-top:auto;padding-top:6px}
+.dl{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--navy);background:#EAF0F7;border:0;border-radius:999px;padding:7px 12px}
+.dl:hover{background:#DCE7F4}
+.dl[disabled]{opacity:.55}
+
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th,td{text-align:left;padding:10px 13px;font-size:13.5px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:#F0F4F9;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--navy);font-weight:700}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--tit);text-align:right}
+.av-sm{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#EAEEF2;vertical-align:middle}
+.pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px}
+.pill.active{background:#E7F4EE;color:var(--green)} .pill.pending{background:#FCF1E2;color:var(--gold)} .pill.blocked{background:#FCEAEC;color:var(--red)}
+
+.bar-row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.bar-row .lbl{width:150px;font-size:12.5px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
+.bar-row .track{flex:1;background:#EAEEF2;border-radius:999px;height:16px;overflow:hidden}
+.bar-row .fill{height:100%;background:linear-gradient(90deg,var(--navy),#0A5BB5);border-radius:999px}
+.bar-row .val{width:46px;text-align:right;font-family:var(--tit);font-size:12.5px;color:var(--navy);flex:none}
+
+.empty{text-align:center;color:var(--mut);padding:36px 12px;font-size:14px}
+.loading{text-align:center;color:var(--mut);padding:30px;font-size:13px}
+.spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--navy);border-radius:50%;animation:rot .8s linear infinite;margin:0 auto 12px}
+@keyframes rot{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1A1A1A;color:#fff;font-size:13px;padding:10px 16px;border-radius:999px;z-index:60;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:.95}
+.foot-note{text-align:center;color:#9AA2AB;font-size:11.5px;margin-top:30px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login">
+  <div class="login-card">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#003876" stroke-width="3" opacity=".4"/><circle cx="32" cy="32" r="19" fill="none" stroke="#003876" stroke-width="3" opacity=".7"/><circle cx="32" cy="32" r="12" fill="none" stroke="#003876" stroke-width="3.4"/><path d="M32 21.5 C36.8 26.5 36.8 37.5 32 42.5 C27.2 37.5 27.2 26.5 32 21.5 Z" fill="#1B7F5A"/></svg>
+      <h1>ClimateGuard</h1>
+    </div>
+    <p class="sub" data-i18n="sub">Panel de datos de biodiversidad</p>
+    <span class="flag"><i></i> <span data-i18n="rd">República Dominicana</span></span>
+    <div id="gbtn"></div>
+    <p class="login-note" data-i18n="loginNote">Inicia sesión con la misma cuenta de Google que usas en la app ClimateGuard Mobile.</p>
+    <div class="lang-min">
+      <button type="button" data-lang="es" aria-pressed="true">ES</button><span style="color:#ccc">·</span><button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app" class="hidden">
+  <div class="top">
+    <span class="logo">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="27" fill="none" stroke="#fff" stroke-width="3" opacity=".4"/><circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="3" opacity=".7"/><circle cx="32" cy="32" r="12" fill="none" stroke="#fff" stroke-width="3.4"/><path d="M32 21.5 C36.8 26.5 36.8 37.5 32 42.5 C27.2 37.5 27.2 26.5 32 21.5 Z" fill="#1B7F5A"/></svg>
+      <span><b>ClimateGuard</b><small data-i18n="panel">Panel de datos</small></span>
+    </span>
+    <span class="sp"></span>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="es" aria-pressed="true">ES</button><button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <div class="me">
+      <img id="meAv" alt="">
+      <span class="nm" id="meNm"></span>
+      <button type="button" class="out" id="btnOut" data-i18n="signout">Salir</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" id="tabMine" role="tab" aria-selected="true" data-i18n="tabMine">Mis datos</button>
+    <button type="button" id="tabAdmin" role="tab" aria-selected="false" class="hidden" data-i18n="tabAdmin">Administración</button>
+  </div>
+
+  <main>
+    <!-- MY DATA -->
+    <section id="vMine">
+      <div class="stats" id="mineStats"></div>
+      <div class="section-h" data-i18n="mapTitle">Mapa de observaciones</div>
+      <div id="map"></div>
+      <div class="section-h" data-i18n="obsTitle">Observaciones</div>
+      <div id="obsWrap"></div>
+      <div class="section-h" data-i18n="trkTitle">Recorridos</div>
+      <div id="trkWrap"></div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="vAdmin" class="hidden">
+      <div class="section-h" data-i18n="statsTitle">Puntos por usuario</div>
+      <div id="admStats"></div>
+      <div class="section-h" data-i18n="attendTitle">Asistencia</div>
+      <div id="admAttend"></div>
+      <div class="section-h" data-i18n="usersTitle">Usuarios</div>
+      <div id="admUsers"></div>
+    </section>
+
+    <p class="foot-note">ClimateGuard Mobile · KNPS · KOICA · GDC<br><span data-i18n="footNote">Datos privados — solo visibles tras iniciar sesión.</span></p>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ══════════ CONFIG ══════════ */
+const CLIENT_ID = '918300818571-39mnd09t4q7k1kro6olhiafjme803k5b.apps.googleusercontent.com';
+const API = 'https://script.google.com/macros/s/AKfycbxLthzg2zo6Wqw3RaU0xtyosK8qA9jYlCn2YP5xPK7ed7Ms7b-E_rzTGFi2V5MGr4fJ/exec';
+const ADMIN_EMAILS = ['bhyu@knps.or.kr'];
+
+/* ══════════ i18n ══════════ */
+const I18N = {
+  es:{ sub:'Panel de datos de biodiversidad', rd:'República Dominicana', panel:'Panel de datos',
+    loginNote:'Inicia sesión con la misma cuenta de Google que usas en la app ClimateGuard Mobile.',
+    signout:'Salir', tabMine:'Mis datos', tabAdmin:'Administración',
+    stPts:'Puntos', stNiv:'Nivel', stObs:'Observaciones', stTrk:'Recorridos',
+    mapTitle:'Mapa de observaciones', obsTitle:'Observaciones', trkTitle:'Recorridos',
+    statsTitle:'Puntos por usuario', attendTitle:'Asistencia', usersTitle:'Usuarios',
+    dlPhoto:'Descargar foto', dlTrack:'Descargar recorrido', noPhoto:'Sin foto',
+    noObs:'Aún no hay observaciones.', noTrk:'Aún no hay recorridos.', noData:'Sin datos todavía.',
+    cUser:'Usuario', cName:'Nombre', cEmail:'Correo', cStatus:'Estado', cSubs:'Envíos', cLast:'Último acceso',
+    cDate:'Fecha', cPresent:'Presentes', cBy:'Registrado por', cPts:'Puntos', cNiv:'Nivel', cObs:'Obs.',
+    footNote:'Datos privados — solo visibles tras iniciar sesión.',
+    loading:'Cargando…', expired:'Sesión caducada. Inicia sesión de nuevo.', notAdmin:'Sin permisos de administrador.',
+    errNet:'Error de conexión.', dist:'dist', downloading:'Descargando…', dlErr:'No se pudo descargar.' },
+  en:{ sub:'Biodiversity data dashboard', rd:'Dominican Republic', panel:'Data dashboard',
+    loginNote:'Sign in with the same Google account you use in the ClimateGuard Mobile app.',
+    signout:'Sign out', tabMine:'My data', tabAdmin:'Admin',
+    stPts:'Points', stNiv:'Level', stObs:'Observations', stTrk:'Tracks',
+    mapTitle:'Observation map', obsTitle:'Observations', trkTitle:'Tracks',
+    statsTitle:'Points by user', attendTitle:'Attendance', usersTitle:'Users',
+    dlPhoto:'Download photo', dlTrack:'Download track', noPhoto:'No photo',
+    noObs:'No observations yet.', noTrk:'No tracks yet.', noData:'No data yet.',
+    cUser:'User', cName:'Name', cEmail:'Email', cStatus:'Status', cSubs:'Uploads', cLast:'Last login',
+    cDate:'Date', cPresent:'Present', cBy:'Recorded by', cPts:'Points', cNiv:'Level', cObs:'Obs.',
+    footNote:'Private data — visible only after signing in.',
+    loading:'Loading…', expired:'Session expired. Please sign in again.', notAdmin:'No admin permissions.',
+    errNet:'Connection error.', dist:'dist', downloading:'Downloading…', dlErr:'Download failed.' }
+};
+let LANG = (navigator.language||'es').slice(0,2)==='en' ? 'en' : 'es';
+const t = k => (I18N[LANG][k] ?? k);
+function applyI18n(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ const k=el.getAttribute('data-i18n'); if(I18N[LANG][k]!=null) el.textContent=I18N[LANG][k]; });
+  document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed', b.getAttribute('data-lang')===LANG));
+  if(SESSION) render();  // re-render dynamic parts
+}
+function setLang(l){ LANG=l; applyI18n(); }
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-lang]'); if(b) setLang(b.getAttribute('data-lang')); });
+
+/* ══════════ state ══════════ */
+let ID_TOKEN=null, SESSION=null, MINE=null, ADM=null, _n=0, _map=null, _imgCache={};
+
+/* ══════════ JSONP api ══════════ */
+function api(params){
+  return new Promise((res,rej)=>{
+    const cb='cg'+(_n++); let s;
+    const done=(fn,arg)=>{ try{delete window[cb];}catch(_){} if(s&&s.parentNode)s.parentNode.removeChild(s); fn(arg); };
+    window[cb]=d=>done(res,d);
+    s=document.createElement('script');
+    s.onerror=()=>done(rej,new Error('network'));
+    s.src=API+'?'+params+'&callback='+cb;
+    document.body.appendChild(s);
+    setTimeout(()=>{ if(window[cb]) done(rej,new Error('timeout')); },20000);
+  });
+}
+const authed = p => api(p+'&id_token='+encodeURIComponent(ID_TOKEN));
+
+/* ══════════ auth ══════════ */
+function decodeJwt(tok){ try{ return JSON.parse(decodeURIComponent(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join(''))); }catch(_){ return {}; } }
+function onCredential(resp){
+  ID_TOKEN = resp.credential;
+  const p = decodeJwt(ID_TOKEN);
+  SESSION = { email:(p.email||'').toLowerCase(), name:p.name||p.email||'', picture:p.picture||'' };
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('meNm').textContent = SESSION.name;
+  if(SESSION.picture) document.getElementById('meAv').src = SESSION.picture;
+  const isAdmin = ADMIN_EMAILS.indexOf(SESSION.email)>=0;
+  document.getElementById('tabAdmin').classList.toggle('hidden', !isAdmin);
+  applyI18n();
+  loadMine();
+  if(isAdmin) loadAdmin();
+}
+function initGoogle(){
+  if(!(window.google&&google.accounts&&google.accounts.id)){ setTimeout(initGoogle,250); return; }
+  google.accounts.id.initialize({ client_id:CLIENT_ID, callback:onCredential, auto_select:true });
+  google.accounts.id.renderButton(document.getElementById('gbtn'), { theme:'filled_blue', size:'large', shape:'pill', text:'signin_with', width:280 });
+  google.accounts.id.prompt();
+}
+initGoogle();
+function signOut(){
+  try{ google.accounts.id.disableAutoSelect(); }catch(_){}
+  ID_TOKEN=SESSION=MINE=ADM=null; _imgCache={};
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden');
+}
+document.getElementById('btnOut').onclick=signOut;
+
+/* ══════════ helpers ══════════ */
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('on'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('on'),2600); }
+function esc(s){ return String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function fileId(url){ const m=String(url||'').match(/[-\w]{25,}/); return m?m[0]:''; }
+function fmtDate(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return String(v).slice(0,16).replace('T',' '); return d.toLocaleString(LANG==='en'?'en-US':'es-DO',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function fmtDay(v){ if(!v) return ''; const d=new Date(v); if(isNaN(d)) return String(v).slice(0,10); return d.toLocaleDateString(LANG==='en'?'en-US':'es-DO',{year:'numeric',month:'short',day:'numeric'}); }
+function b64ToBlob(b64,mime){ const bin=atob(b64); const a=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i); return new Blob([a],{type:mime||'application/octet-stream'}); }
+function saveBlob(blob,name){ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),4000); }
+async function proxy(id){ if(!id) return null; if(_imgCache[id]) return _imgCache[id]; try{ const r=await authed('action=file&id='+encodeURIComponent(id)); if(r&&r.ok){ _imgCache[id]=r; return r; } if(r&&r.error==='auth'){ toast(t('expired')); } }catch(_){ } return null; }
+function loadingHTML(){ return '<div class="loading"><div class="spin"></div>'+t('loading')+'</div>'; }
+function emptyHTML(msg){ return '<div class="empty">'+esc(msg)+'</div>'; }
+
+/* ══════════ tabs ══════════ */
+document.getElementById('tabMine').onclick=()=>switchTab('mine');
+document.getElementById('tabAdmin').onclick=()=>switchTab('admin');
+function switchTab(w){
+  document.getElementById('tabMine').setAttribute('aria-selected', w==='mine');
+  document.getElementById('tabAdmin').setAttribute('aria-selected', w==='admin');
+  document.getElementById('vMine').classList.toggle('hidden', w!=='mine');
+  document.getElementById('vAdmin').classList.toggle('hidden', w!=='admin');
+  if(w==='mine' && _map) setTimeout(()=>_map.invalidateSize(),60);
+}
+
+/* ══════════ MY DATA ══════════ */
+async function loadMine(){
+  document.getElementById('mineStats').innerHTML=loadingHTML();
+  document.getElementById('obsWrap').innerHTML=''; document.getElementById('trkWrap').innerHTML='';
+  try{
+    const r=await authed('action=mine');
+    if(!r||!r.ok){ if(r&&r.error==='auth'){ toast(t('expired')); signOut(); return; } document.getElementById('mineStats').innerHTML=emptyHTML(t('errNet')); return; }
+    MINE=r; renderMine();
+  }catch(_){ document.getElementById('mineStats').innerHTML=emptyHTML(t('errNet')); }
+}
+function renderMine(){
+  if(!MINE) return;
+  const obs=MINE.observaciones||[], trk=MINE.recorridos||[];
+  document.getElementById('mineStats').innerHTML=
+    stat(MINE.puntos!=null?MINE.puntos:0, t('stPts'),'') +
+    stat(MINE.nivel!=null?MINE.nivel:1, t('stNiv'),'g') +
+    stat(obs.length, t('stObs'),'') +
+    stat(trk.length, t('stTrk'),'');
+  try{ renderMap(obs); }catch(_){ }
+  // observations
+  const ow=document.getElementById('obsWrap');
+  if(!obs.length){ ow.innerHTML=emptyHTML(t('noObs')); }
+  else {
+    ow.className='grid';
+    ow.innerHTML=obs.map((o,i)=>{
+      const esp=o.especie? '<div class="esp">'+esc(o.especie)+'</div>' : '<div class="esp none">—</div>';
+      const chips=(o.clase?'<span class="chip">'+esc(o.clase)+'</span>':'')+(o.iucn?'<span class="chip iucn">'+esc(o.iucn)+'</span>':'');
+      const loc=(o.lat!==''&&o.lat!=null)? Number(o.lat).toFixed(4)+', '+Number(o.lng).toFixed(4) : '—';
+      const fid=fileId(o.foto_url);
+      return '<div class="obs" data-i="'+i+'">'+
+        '<div class="ph" data-fid="'+fid+'">'+(fid?'<div class="sk"></div>':t('noPhoto'))+'</div>'+
+        '<div class="bd">'+esp+'<div class="meta">'+chips+'</div>'+
+        '<div class="meta">📅 '+esc(fmtDate(o.fecha))+'</div>'+
+        '<div class="meta">📍 '+esc(loc)+'</div>'+
+        '<div class="foot">'+(fid?'<button class="dl" data-dl-photo="'+fid+'" data-nm="'+esc((o.especie||'obs')+'_'+(o.id||i))+'">⬇ '+t('dlPhoto')+'</button>':'')+'</div>'+
+        '</div></div>';
+    }).join('');
+    // lazy load thumbnails
+    obs.forEach((o)=>{ const fid=fileId(o.foto_url); if(!fid) return; const ph=ow.querySelector('.ph[data-fid="'+fid+'"]'); if(ph) proxy(fid).then(r=>{ if(r&&ph){ ph.style.backgroundImage='url(data:'+r.mime+';base64,'+r.dataB64+')'; ph.innerHTML=''; } else if(ph){ ph.innerHTML=t('noPhoto'); } }); });
+  }
+  // tracks
+  const tw=document.getElementById('trkWrap');
+  if(!trk.length){ tw.innerHTML=emptyHTML(t('noTrk')); }
+  else {
+    tw.className='';
+    tw.innerHTML='<table><thead><tr><th>'+t('cName')+'</th><th>'+t('cDate')+'</th><th style="text-align:right">km</th><th></th></tr></thead><tbody>'+
+      trk.map(tr=>{ const fid=fileId(tr.geo_url); const km=tr.distance_m?(Number(tr.distance_m)/1000).toFixed(2):'—';
+        return '<tr><td>'+esc(tr.name||('#'+String(tr.id||'').slice(0,6)))+'</td><td>'+esc(fmtDate(tr.start||tr.recibido))+'</td><td class="num">'+km+'</td>'+
+        '<td style="text-align:right">'+(fid?'<button class="dl" data-dl-track="'+fid+'" data-nm="'+esc((tr.name||'track')+'_'+(tr.id||''))+'">⬇ '+t('dlTrack')+'</button>':'')+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
+}
+function stat(v,label,cls){ return '<div class="stat '+cls+'"><b>'+esc(v)+'</b><span>'+esc(label)+'</span></div>'; }
+function renderMap(obs){
+  const mapEl=document.getElementById('map');
+  if(typeof L==='undefined'){ if(mapEl) mapEl.style.display='none'; return; }
+  if(mapEl) mapEl.style.display='';
+  const pts=obs.filter(o=>o.lat!==''&&o.lat!=null&&!isNaN(Number(o.lat)));
+  if(!_map){ _map=L.map('map',{scrollWheelZoom:false}).setView([18.7,-70.16],7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(_map); }
+  if(_map._cgLayer){ _map.removeLayer(_map._cgLayer); }
+  const grp=L.layerGroup();
+  pts.forEach(o=>{ const m=L.circleMarker([Number(o.lat),Number(o.lng)],{radius:7,color:'#003876',weight:2,fillColor:'#1B7F5A',fillOpacity:.85});
+    m.bindPopup('<b>'+esc(o.especie||'—')+'</b><br>'+esc(fmtDate(o.fecha))); grp.addLayer(m); });
+  grp.addTo(_map); _map._cgLayer=grp;
+  if(pts.length){ try{ _map.fitBounds(L.latLngBounds(pts.map(o=>[Number(o.lat),Number(o.lng)])).pad(0.3)); }catch(_){} }
+  setTimeout(()=>_map.invalidateSize(),80);
+}
+
+/* download handlers */
+document.addEventListener('click',async e=>{
+  const pB=e.target.closest('[data-dl-photo]'), tB=e.target.closest('[data-dl-track]');
+  const b=pB||tB; if(!b) return;
+  const id=b.getAttribute(pB?'data-dl-photo':'data-dl-track'); const nm=b.getAttribute('data-nm')||'file';
+  b.disabled=true; const old=b.textContent; b.textContent=t('downloading');
+  const r=await proxy(id);
+  if(r&&r.ok){ const ext=(r.name&&r.name.indexOf('.')>0)?r.name.slice(r.name.lastIndexOf('.')):(pB?'.jpg':'.geojson');
+    saveBlob(b64ToBlob(r.dataB64,r.mime), nm.replace(/[^\w.-]+/g,'_')+ext); }
+  else toast(t('dlErr'));
+  b.disabled=false; b.textContent=old;
+});
+
+/* ══════════ ADMIN ══════════ */
+async function loadAdmin(){
+  document.getElementById('admStats').innerHTML=loadingHTML();
+  document.getElementById('admAttend').innerHTML=''; document.getElementById('admUsers').innerHTML='';
+  try{
+    const [s,a,u]=await Promise.all([ authed('action=stats'), authed('action=asistlist'), authed('action=users') ]);
+    if(s&&s.error==='auth'){ toast(t('expired')); return; }
+    if(s&&s.error==='not_admin'){ document.getElementById('admStats').innerHTML=emptyHTML(t('notAdmin')); return; }
+    ADM={stats:(s&&s.stats)||[], asist:(a&&a.asistencia)||[], users:(u&&u.users)||[]};
+    renderAdmin();
+  }catch(_){ document.getElementById('admStats').innerHTML=emptyHTML(t('errNet')); }
+}
+function renderAdmin(){
+  if(!ADM) return;
+  // stats bar chart
+  const st=[...ADM.stats].sort((a,b)=>(b.puntos||0)-(a.puntos||0));
+  const max=Math.max(1,...st.map(x=>x.puntos||0));
+  const sw=document.getElementById('admStats');
+  sw.innerHTML = st.length ? st.map(x=>{
+    const nm=(x.usuario||'').split('@')[0];
+    return '<div class="bar-row"><span class="lbl" title="'+esc(x.usuario)+'">'+esc(nm)+'</span>'+
+      '<span class="track"><span class="fill" style="width:'+Math.round((x.puntos||0)/max*100)+'%"></span></span>'+
+      '<span class="val">'+esc(x.puntos||0)+'</span></div>';
+  }).join('') : emptyHTML(t('noData'));
+  // attendance (group by date)
+  const aw=document.getElementById('admAttend');
+  if(!ADM.asist.length){ aw.innerHTML=emptyHTML(t('noData')); }
+  else {
+    const byDay={}; ADM.asist.forEach(r=>{ (byDay[r.fecha]=byDay[r.fecha]||[]).push(r); });
+    const days=Object.keys(byDay).sort((a,b)=>b.localeCompare(a));
+    aw.innerHTML='<table><thead><tr><th>'+t('cDate')+'</th><th style="text-align:right">'+t('cPresent')+'</th><th>'+t('cName')+'</th></tr></thead><tbody>'+
+      days.map(d=>{ const list=byDay[d]; const names=list.map(x=>esc(x.nombre||x.email)).join(', ');
+        return '<tr><td>'+esc(fmtDay(d))+'</td><td class="num">'+list.length+'</td><td>'+names+'</td></tr>'; }).join('')+'</tbody></table>';
+  }
+  // users
+  const uw=document.getElementById('admUsers');
+  if(!ADM.users.length){ uw.innerHTML=emptyHTML(t('noData')); }
+  else {
+    uw.innerHTML='<table><thead><tr><th></th><th>'+t('cName')+'</th><th>'+t('cEmail')+'</th><th>'+t('cStatus')+'</th><th style="text-align:right">'+t('cSubs')+'</th><th>'+t('cLast')+'</th></tr></thead><tbody>'+
+      ADM.users.map((u,i)=>{ const stt=(u.status||'active').toLowerCase();
+        return '<tr><td><img class="av-sm" data-uav="'+fileId(u.avatar_url)+'" alt=""></td>'+
+          '<td>'+esc(u.name||'')+'</td><td>'+esc(u.email||'')+'</td>'+
+          '<td><span class="pill '+stt+'">'+esc(u.status||'active')+'</span></td>'+
+          '<td class="num">'+esc(u.submissions||0)+'</td><td>'+esc(fmtDate(u.last_login))+'</td></tr>'; }).join('')+'</tbody></table>';
+    // avatars via proxy
+    ADM.users.forEach(u=>{ const fid=fileId(u.avatar_url); if(!fid) return; const img=uw.querySelector('img[data-uav="'+fid+'"]'); if(img) proxy(fid).then(r=>{ if(r&&img) img.src='data:'+r.mime+';base64,'+r.dataB64; }); });
+  }
+}
+
+/* re-render on language change */
+function render(){ if(MINE) renderMine(); if(ADM) renderAdmin(); }
+
+applyI18n();
+</script>
+</body>
+</html>
