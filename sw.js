@@ -3,7 +3,7 @@
    que forzar recarga. Solo intercepta peticiones GET del MISMO origen (el
    propio sitio); las llamadas al servidor (Apps Script), Google, mapas y CDNs
    pasan sin tocarse. Offline: sirve la copia cacheada. */
-const CACHE = 'cg-web-v1.5.0';
+const CACHE = 'cg-web-v1.5.1';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 
