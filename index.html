@@ -656,8 +656,9 @@ async function doLogout(all){
   msg.className='rs-msg'; msg.textContent=t('loDoing');
   let d; try{ d=await authed(all?'action=logoutall':('action=logoutuser&email='+encodeURIComponent(em))); }catch(_){ d=null; }
   bs.forEach(b=>{ if(b) b.disabled=false; });
-  if(d&&d.ok){ msg.className='rs-msg ok'; msg.textContent= all ? (t('loOkAll')+': '+(d.count||0)) : (t('loOkOne')+' '+em); }
-  else { msg.className='rs-msg err'; msg.textContent=t('loErr')+(d&&d.error?(' ('+d.error+')'):''); }
+  /* servidor anterior a v3.9: responde ok sin count/email -> no es un exito real */
+  if(d&&d.ok&&(all?typeof d.count==='number':!!d.email)){ msg.className='rs-msg ok'; msg.textContent= all ? (t('loOkAll')+': '+(d.count||0)) : (t('loOkOne')+' '+em); }
+  else { msg.className='rs-msg err'; msg.textContent=t('loErr')+(d&&d.error?(' ('+d.error+')'):(d&&d.ok?' (servidor < v3.9)':'')); }
 }
 async function doReset(){
   const em=(document.getElementById('rsEmail').value||'').trim().toLowerCase();
